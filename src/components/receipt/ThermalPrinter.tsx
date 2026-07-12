@@ -25,10 +25,7 @@ export default function ThermalPrinter({
           body * { visibility: hidden !important; }
           .receipt-print, .receipt-print * { visibility: visible !important; }
           .receipt-print {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
+            position: absolute; left: 0; top: 0; width: 100%;
           }
           .receipt-print .no-print { display: none !important; }
         }
@@ -36,11 +33,12 @@ export default function ThermalPrinter({
 
       <div className="receipt-print space-y-3">
         <div
-          className="border-2 border-dashed border-gray-300 rounded mx-auto text-[11px]"
+          className="rounded-xl mx-auto text-[11px] p-3"
           style={{
             width: size === '58mm' ? 180 : 220,
-            padding: 12,
-            fontFamily: 'monospace',
+            background: 'var(--color-frost)',
+            color: '#0d2233',
+            fontFamily: 'var(--font-mono)',
           }}
         >
           <div className="text-center font-bold">TOKO FROZEN FOOD</div>
@@ -61,7 +59,7 @@ export default function ThermalPrinter({
             </div>
           ))}
 
-          <div className="my-1 border-t pt-1">
+          <div className="my-1 border-t pt-1" style={{ borderColor: '#b9c9d4' }}>
             <div className="flex justify-between font-bold">
               <span>TOTAL</span>
               <span>{formatRupiah(sale.total as number)}</span>
@@ -83,13 +81,13 @@ export default function ThermalPrinter({
         <div className="no-print flex gap-2 justify-center">
           <button
             onClick={() => window.print()}
-            className="px-4 py-1 rounded text-xs bg-blue-500 text-white"
+            className="px-4 py-1 rounded text-xs bg-gradient-to-r from-ice to-ice-dim text-bg-deep font-bold"
           >
             PRINT
           </button>
           <button
             onClick={onClose}
-            className="px-4 py-1 rounded text-xs bg-gray-200"
+            className="px-4 py-1 rounded text-xs bg-bg-panel-2 text-frost-dim border border-line"
           >
             Tutup
           </button>

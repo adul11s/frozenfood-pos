@@ -2,8 +2,15 @@ import { useQuery } from '@tanstack/react-query';
 import { getSummary, getChartData } from '../../services/report';
 import { formatRupiah } from '../../utils';
 import SalesChart from '../../components/charts/SalesChart';
-import { Card, PageHeader, Spinner } from '../../components/ui/Card';
+import { Spinner } from '../../components/ui/Card';
 import type { DashboardSummary, ChartDataPoint } from '../../types';
+
+const cards = [
+  { key: 'capital', label: 'Modal', color: 'text-ice', icon: '🏦' },
+  { key: 'stockValue', label: 'Nilai Stock', color: 'text-tangerine', icon: '📦' },
+  { key: 'todaySales', label: 'Penjualan Hari Ini', color: 'text-mint', icon: '💰' },
+  { key: 'todayProfit', label: 'Profit Hari Ini', color: 'text-amber', icon: '📈' },
+] as const;
 
 export default function Dashboard() {
   const { data, isLoading } = useQuery<DashboardSummary>({
@@ -22,24 +29,32 @@ export default function Dashboard() {
 
   return (
     <div className="p-4 space-y-4">
-      <PageHeader title="Dashboard" />
+      <h1 className="text-xl font-bold font-display text-frost">Dashboard</h1>
 
       {isLoading ? (
         <Spinner />
       ) : (
         <>
           <div className="grid grid-cols-2 gap-3">
-            <Card title="Modal" value={formatRupiah(s.capital)} color="text-blue-600" icon="🏦" />
-            <Card title="Nilai Stock" value={formatRupiah(s.stockValue)} color="text-orange-600" icon="📦" />
-            <Card title="Penjualan Hari Ini" value={formatRupiah(s.todaySales)} color="text-green-600" icon="💰" />
-            <Card title="Profit Hari Ini" value={formatRupiah(s.todayProfit)} color="text-purple-600" icon="📈" />
+            {cards.map((c) => (
+              <div key={c.key} className="panel p-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-frost-dim uppercase tracking-wide">{c.label}</p>
+                  <span className="text-lg">{c.icon}</span>
+                </div>
+                <p className={`text-xl font-bold mt-1 ${c.color} font-mono`}>
+                  {formatRupiah(s[c.key])}
+                </p>
+              </div>
+            ))}
           </div>
-          <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-            <h2 className="text-sm font-semibold text-gray-700 mb-3">Grafik Penjualan 7 Hari</h2>
+
+          <div className="panel p-5">
+            <h2 className="text-sm font-semibold text-frost-dim mb-3">Grafik Penjualan 7 Hari</h2>
             {chartData && chartData.length > 0 ? (
               <SalesChart data={chartData} />
             ) : (
-              <p className="text-center text-gray-400 text-sm py-8">Belum ada data penjualan</p>
+              <p className="text-center text-frost-dim text-sm py-8">Belum ada data penjualan</p>
             )}
           </div>
         </>

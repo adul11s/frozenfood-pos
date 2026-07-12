@@ -12,27 +12,19 @@ export default function Report() {
 
   const { data, isLoading } = useQuery<ReportData>({
     queryKey: ['report', filter, startDate, endDate],
-    queryFn: () =>
-      getReport(
-        filter,
-        filter === 'custom' ? startDate : undefined,
-        filter === 'custom' ? endDate : undefined,
-      ),
+    queryFn: () => getReport(filter, filter === 'custom' ? startDate : undefined, filter === 'custom' ? endDate : undefined),
     enabled: filter !== 'custom' || (!!startDate && !!endDate),
   });
 
   const card = (title: string, value: string, color: string) => (
-    <div className="bg-white rounded-xl p-4 border border-gray-100 text-sm">
-      <p className="text-xs text-gray-500 uppercase">{title}</p>
-      <p className={`text-lg font-bold mt-1 ${color}`}>{value}</p>
+    <div className="panel p-4 text-sm">
+      <p className="text-xs text-frost-dim uppercase">{title}</p>
+      <p className={`text-lg font-bold mt-1 font-mono ${color}`}>{value}</p>
     </div>
   );
 
   const filters: { val: ReportFilter; label: string }[] = [
-    { val: 'today', label: 'Hari Ini' },
-    { val: 'week', label: 'Minggu' },
-    { val: 'month', label: 'Bulan' },
-    { val: 'custom', label: 'Custom' },
+    { val: 'today', label: 'Hari Ini' }, { val: 'week', label: 'Minggu' }, { val: 'month', label: 'Bulan' }, { val: 'custom', label: 'Custom' },
   ];
 
   return (
@@ -41,69 +33,46 @@ export default function Report() {
 
       <div className="flex gap-2">
         {filters.map((f) => (
-          <button
-            key={f.val}
-            onClick={() => setFilter(f.val)}
-            className={`flex-1 py-2 rounded-lg text-xs font-semibold ${
-              filter === f.val ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600'
-            }`}
-          >
+          <button key={f.val} onClick={() => setFilter(f.val)}
+            className={`flex-1 py-2 rounded-lg text-xs font-semibold ${filter === f.val ? 'bg-gradient-to-r from-ice to-ice-dim text-bg-deep' : 'panel-2 text-frost-dim'}`}>
             {f.label}
           </button>
         ))}
       </div>
 
       {filter === 'custom' && (
-        <div className="bg-white rounded-xl p-4 border border-gray-100 space-y-3 text-sm">
+        <div className="panel p-4 space-y-3 text-sm">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-gray-500">Dari</label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full border rounded-lg px-3 py-2"
-              />
+              <label className="text-xs text-frost-dim">Dari</label>
+              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full panel-2 px-3 py-2 text-frost outline-none" />
             </div>
             <div>
-              <label className="text-xs text-gray-500">Sampai</label>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-full border rounded-lg px-3 py-2"
-              />
+              <label className="text-xs text-frost-dim">Sampai</label>
+              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full panel-2 px-3 py-2 text-frost outline-none" />
             </div>
           </div>
         </div>
       )}
 
-      {isLoading ? (
-        <Spinner />
-      ) : data ? (
+      {isLoading ? <Spinner /> : data ? (
         <>
           <div className="grid grid-cols-2 gap-3">
-            {card('Omzet', formatRupiah(data.omzet), 'text-blue-600')}
-            {card('Profit', formatRupiah(data.profit), 'text-green-600')}
-            {card('Terlaris', data.produkTerlaris || '-', 'text-purple-600')}
-            {card('Pengeluaran', formatRupiah(data.pengeluaran), 'text-red-500')}
+            {card('Omzet', formatRupiah(data.omzet), 'text-ice')}
+            {card('Profit', formatRupiah(data.profit), 'text-mint')}
+            {card('Terlaris', data.produkTerlaris || '-', 'text-tangerine')}
+            {card('Pengeluaran', formatRupiah(data.pengeluaran), 'text-alert')}
           </div>
-          <div className="bg-white rounded-xl p-4 border border-gray-100 text-sm">
-            <h2 className="font-semibold text-gray-700 mb-2">Ringkasan</h2>
-            <div className="space-y-1 text-xs text-gray-500">
-              <div className="flex justify-between">
-                <span>Total Modal</span>
-                <span>{formatRupiah(data.modal)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Nilai Stock</span>
-                <span>{formatRupiah(data.stockValue)}</span>
-              </div>
+          <div className="panel p-4 text-sm">
+            <h2 className="font-semibold text-frost-dim mb-2">Ringkasan</h2>
+            <div className="space-y-1 text-xs text-frost-dim">
+              <div className="flex justify-between"><span>Total Modal</span><span className="font-mono">{formatRupiah(data.modal)}</span></div>
+              <div className="flex justify-between"><span>Nilai Stock</span><span className="font-mono">{formatRupiah(data.stockValue)}</span></div>
             </div>
           </div>
         </>
       ) : filter === 'custom' && (!startDate || !endDate) ? (
-        <p className="text-center text-gray-400 py-8 text-sm">Pilih rentang tanggal</p>
+        <p className="text-center text-frost-dim py-8 text-sm">Pilih rentang tanggal</p>
       ) : null}
     </div>
   );

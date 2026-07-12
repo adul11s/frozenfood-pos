@@ -11,8 +11,8 @@ export default defineConfig({
       manifest: {
         name: 'FrozenFood POS',
         short_name: 'FrozenPOS',
-        theme_color: '#3B82F6',
-        background_color: '#F8FAFC',
+theme_color: '#071a2b',
+      background_color: '#071a2b',
         display: 'standalone',
         orientation: 'portrait',
         scope: '/',

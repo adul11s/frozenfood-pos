@@ -1,14 +1,68 @@
 @import "tailwindcss";
 
+@theme {
+  --color-bg-deep: #071a2b;
+  --color-bg-panel: #0d2740;
+  --color-bg-panel-2: #123252;
+  --color-line: rgba(148, 197, 224, 0.14);
+  --color-ice: #7de8f0;
+  --color-ice-dim: #4fb8c4;
+  --color-frost: #eaf6fb;
+  --color-frost-dim: #a9c4d6;
+  --color-tangerine: #ff7a3d;
+  --color-mint: #34d399;
+  --color-alert: #fb5b4b;
+  --color-amber: #ffc857;
+  --font-display: "Space Grotesk", sans-serif;
+  --font-body: "Manrope", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
 @layer base {
   * { -webkit-tap-highlight-color: transparent; }
   html { overscroll-behavior: none; }
-  body { font-family: system-ui, -apple-system, sans-serif; }
+  body {
+    font-family: var(--font-body);
+    background: var(--color-bg-deep);
+    color: var(--color-frost);
+    min-height: 100vh;
+  }
 }
 
 @layer utilities {
   .scrollbar-hide::-webkit-scrollbar { display: none; }
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: rgba(125,232,240,0.18); border-radius: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+
   input[type="number"]::-webkit-inner-spin-button { display: none; }
+
+  .bg-glow {
+    background-image:
+      radial-gradient(circle at 15% 8%, rgba(125,232,240,0.07), transparent 40%),
+      radial-gradient(circle at 90% 85%, rgba(255,122,61,0.06), transparent 45%);
+  }
+
+  .panel { background: var(--color-bg-panel); border: 1px solid var(--color-line); border-radius: 14px; }
+  .panel-2 { background: var(--color-bg-panel-2); border: 1px solid var(--color-line); border-radius: 10px; }
+
+  .price-tag {
+    background: linear-gradient(135deg, var(--color-tangerine), #e85d21);
+    color: #fff;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 13px;
+    padding: 6px 10px 12px;
+    border-radius: 6px 6px 0 0;
+    clip-path: polygon(0% 0%, 100% 0%, 100% 78%, 92% 100%, 84% 78%, 76% 100%, 68% 78%, 60% 100%, 52% 78%, 44% 100%, 36% 78%, 28% 100%, 20% 78%, 12% 100%, 4% 78%, 0% 100%);
+  }
+
+  .cat-btn-active {
+    background: linear-gradient(90deg, rgba(125,232,240,0.16), rgba(125,232,240,0.03));
+    border-color: rgba(125,232,240,0.35);
+    color: var(--color-ice);
+  }
 }
 
 @keyframes fadeIn {

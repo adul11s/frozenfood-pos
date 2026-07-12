@@ -48,7 +48,7 @@ function AppContent() {
   if (!user) return <Login />;
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-16">
+    <div className="min-h-screen bg-bg-deep pb-16 bg-glow">
       <div className="max-w-lg mx-auto">
         <Routes>
           <Route path="/" element={<ProtectedRoute path="/"><Dashboard /></ProtectedRoute>} />
