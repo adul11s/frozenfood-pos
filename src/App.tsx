@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Navbar from './components/Navbar';
 import Dashboard from './pages/Dashboard';
@@ -15,11 +15,20 @@ import Login from './pages/Login';
 import { useStore } from './store/useStore';
 import { useOfflineSync } from './hooks/useOfflineSync';
 import { ToastProvider } from './components/ui/Toast';
-import { useEffect } from 'react';
+import { canAccess } from './config/permissions';
+import { useEffect, type ReactNode } from 'react';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30000, retry: 1 } },
 });
+
+function ProtectedRoute({ path, children }: { path: string; children: ReactNode }) {
+  const { user } = useStore();
+  if (!user || !canAccess(path, user.role)) {
+    return <Navigate to="/" replace />;
+  }
+  return <>{children}</>;
+}
 
 function AppContent() {
   const { user, setOnline } = useStore();
@@ -42,16 +51,17 @@ function AppContent() {
     <div className="min-h-screen bg-gray-50 pb-16">
       <div className="max-w-lg mx-auto">
         <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/sales" element={<Sales />} />
-          <Route path="/products" element={<Product />} />
-          <Route path="/stock" element={<Stock />} />
-          <Route path="/purchase" element={<Purchase />} />
-          <Route path="/supplier" element={<Supplier />} />
-          <Route path="/expense" element={<Expense />} />
-          <Route path="/capital" element={<Capital />} />
-          <Route path="/report" element={<Report />} />
-          <Route path="/setting" element={<Setting />} />
+          <Route path="/" element={<ProtectedRoute path="/"><Dashboard /></ProtectedRoute>} />
+          <Route path="/sales" element={<ProtectedRoute path="/sales"><Sales /></ProtectedRoute>} />
+          <Route path="/products" element={<ProtectedRoute path="/products"><Product /></ProtectedRoute>} />
+          <Route path="/stock" element={<ProtectedRoute path="/stock"><Stock /></ProtectedRoute>} />
+          <Route path="/purchase" element={<ProtectedRoute path="/purchase"><Purchase /></ProtectedRoute>} />
+          <Route path="/supplier" element={<ProtectedRoute path="/supplier"><Supplier /></ProtectedRoute>} />
+          <Route path="/expense" element={<ProtectedRoute path="/expense"><Expense /></ProtectedRoute>} />
+          <Route path="/capital" element={<ProtectedRoute path="/capital"><Capital /></ProtectedRoute>} />
+          <Route path="/report" element={<ProtectedRoute path="/report"><Report /></ProtectedRoute>} />
+          <Route path="/setting" element={<ProtectedRoute path="/setting"><Setting /></ProtectedRoute>} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
       <Navbar />

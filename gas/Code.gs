@@ -19,6 +19,11 @@
  * - Sales: tanggal disimpan sebagai datetime lengkap (new Date())
  * - Purchase/Stock/Expense/Capital: menerima tanggal dari frontend (yyyy-mm-dd),
  *   dikonversi ke Date object sebelum disimpan
+ *
+ * CHANGES (Role-based access):
+ * - 3 role: owner, admin, kasir
+ * - Default users: owner/owner123, admin/admin123, kasir/kasir123
+ * - Pembatasan menu ada di frontend (src/config/permissions.ts)
  */
 
 const SS = SpreadsheetApp.getActiveSpreadsheet();
@@ -49,7 +54,9 @@ function setup() {
 
   var users = SS.getSheetByName('USERS');
   if (users.getLastRow() < 2) {
-    users.appendRow(['1', 'admin', 'admin123', 'Admin', 'admin']);
+    users.appendRow(['1', 'owner', 'owner123', 'Owner', 'owner']);
+    users.appendRow(['2', 'admin', 'admin123', 'Admin', 'admin']);
+    users.appendRow(['3', 'kasir', 'kasir123', 'Kasir 1', 'kasir']);
   }
 
   var suppliers = SS.getSheetByName('SUPPLIER');

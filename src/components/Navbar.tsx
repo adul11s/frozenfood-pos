@@ -1,20 +1,12 @@
 import { Link, useLocation } from 'react-router-dom';
-
-const menus = [
-  { path: '/', icon: '🏠', label: 'Dashboard' },
-  { path: '/sales', icon: '💰', label: 'Kasir' },
-  { path: '/products', icon: '📦', label: 'Produk' },
-  { path: '/purchase', icon: '🛒', label: 'Pembelian' },
-  { path: '/stock', icon: '📊', label: 'Stock' },
-  { path: '/supplier', icon: '🚚', label: 'Supplier' },
-  { path: '/expense', icon: '💸', label: 'Pengeluaran' },
-  { path: '/capital', icon: '🏦', label: 'Modal' },
-  { path: '/report', icon: '📈', label: 'Laporan' },
-  { path: '/setting', icon: '⚙️', label: 'Pengaturan' },
-];
+import { useStore } from '../store/useStore';
+import { getMenusByRole } from '../config/permissions';
 
 export default function Navbar() {
   const location = useLocation();
+  const { user } = useStore();
+  const menus = getMenusByRole(user?.role || 'kasir');
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40">
       <div className="flex overflow-x-auto scrollbar-hide">

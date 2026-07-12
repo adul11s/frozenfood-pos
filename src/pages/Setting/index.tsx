@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useStore } from '../../store/useStore';
 import { getPendingSales } from '../../utils/db';
 import { useToast } from '../../hooks/useToast';
+import { ROLE_LABELS } from '../../config/permissions';
 
 export default function Setting() {
   const { isOnline, user, setUser } = useStore();
@@ -37,6 +38,10 @@ export default function Setting() {
         <div className="flex justify-between items-center">
           <span className="text-gray-600">User</span>
           <span className="font-medium">{user?.nama || '-'}</span>
+        </div>
+        <div className="flex justify-between items-center">
+          <span className="text-gray-600">Role</span>
+          <span className="font-medium">{user ? ROLE_LABELS[user.role] : '-'}</span>
         </div>
         <div className="flex justify-between items-center">
           <span className="text-gray-600">Nama Toko</span>

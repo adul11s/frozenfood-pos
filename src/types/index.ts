@@ -1,8 +1,10 @@
+export type UserRole = 'owner' | 'admin' | 'kasir';
+
 export interface User {
   id: string;
   username: string;
   nama: string;
-  role: 'admin' | 'kasir';
+  role: UserRole;
 }
 
 export interface Product {
