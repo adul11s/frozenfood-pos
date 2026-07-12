@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getProducts } from '../../services/product';
 import { createSale } from '../../services/sales';
@@ -17,7 +17,6 @@ export default function Sales() {
   const [lastSale, setLastSale] = useState<Record<string, unknown> | null>(null);
   const [metode, setMetode] = useState<'cash' | 'qris' | 'transfer'>('cash');
   const [category, setCategory] = useState('semua');
-  const barcodeRef = useRef<HTMLInputElement>(null);
 
   const {
     cart, addToCart, removeFromCart, updateCartQty, clearCart, getCartTotal, isOnline, user,
@@ -55,19 +54,9 @@ export default function Sales() {
   const categories = ['semua', ...Array.from(new Set(products.map((p) => p.kategori)))];
   const filtered = products.filter((p) => {
     const matchCat = category === 'semua' || p.kategori === category;
-    const matchQ = p.nama.toLowerCase().includes(search.toLowerCase()) || p.barcode.includes(search);
+    const matchQ = p.nama.toLowerCase().includes(search.toLowerCase());
     return matchCat && matchQ;
   });
-
-  const handleBarcode = (barcode: string) => {
-    const product = products.find((p) => p.barcode === barcode);
-    if (product) {
-      addToCart(product, 1);
-      setSearch('');
-    } else {
-      showToast('Barcode tidak ditemukan', 'error');
-    }
-  };
 
   const handleCheckout = async () => {
     if (cart.length === 0) return;
@@ -115,24 +104,14 @@ export default function Sales() {
 
   return (
     <div className="flex flex-col h-full gap-3 p-4">
-      {/* Search + barcode */}
-      <div className="flex gap-2">
-        <input
-          ref={barcodeRef}
-          autoFocus
-          className="flex-1 panel-2 px-3 py-2 text-sm text-frost placeholder:text-frost-dim outline-none"
-          placeholder="Scan / Cari produk..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleBarcode(search)}
-        />
-        <button
-          onClick={() => barcodeRef.current?.focus()}
-          className="bg-gradient-to-r from-ice to-ice-dim text-bg-deep px-4 rounded-lg text-sm font-bold"
-        >
-          SCAN
-        </button>
-      </div>
+      {/* Search */}
+      <input
+        autoFocus
+        className="w-full panel-2 px-3 py-2 text-sm text-frost placeholder:text-frost-dim outline-none"
+        placeholder="Cari produk..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+      />
 
       {/* Categories */}
       <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">

@@ -7,10 +7,10 @@ import { useToast } from '../../hooks/useToast';
 import { todayISO } from '../../utils';
 import type { Product } from '../../types';
 
-const inputCls = 'w-full panel-2 px-3 py-2 text-frost placeholder:text-frost-dim outline-none';
+const inputCls = 'w-full panel-2 px-3 py-2 text-frost outline-none';
 
 export default function Stock() {
-  const [barcode, setBarcode] = useState('');
+  const [productBarcode, setProductBarcode] = useState('');
   const [qty, setQty] = useState(0);
   const [mode, setMode] = useState<'in' | 'out'>('in');
   const [keterangan, setKeterangan] = useState('');
@@ -23,18 +23,18 @@ export default function Stock() {
   const mut = useMutation({
     mutationFn: (payload: { barcode: string; qty: number; tanggal?: string; keterangan?: string }) =>
       mode === 'in' ? stockIn(payload) : stockOut(payload),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['products'] }); qc.invalidateQueries({ queryKey: ['dashboard'] }); setBarcode(''); setQty(0); setKeterangan(''); setTanggal(todayISO()); showToast(`Stock ${mode === 'in' ? 'masuk' : 'keluar'} berhasil`, 'success'); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['products'] }); qc.invalidateQueries({ queryKey: ['dashboard'] }); setProductBarcode(''); setQty(0); setKeterangan(''); setTanggal(todayISO()); showToast(`Stock ${mode === 'in' ? 'masuk' : 'keluar'} berhasil`, 'success'); },
     onError: () => showToast('Gagal mengupdate stock', 'error'),
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!barcode || qty <= 0) { showToast('Isi barcode dan jumlah dengan benar', 'error'); return; }
-    mut.mutate({ barcode, qty, tanggal, keterangan });
+    if (!productBarcode || qty <= 0) { showToast('Pilih produk dan isi jumlah', 'error'); return; }
+    mut.mutate({ barcode: productBarcode, qty, tanggal, keterangan });
   };
 
-  const produk = products.find((p) => p.barcode === barcode);
-  const stockColor = (s: number) => s === 0 ? 'text-alert' : s <= 5 ? 'text-amber' : s < 20 ? 'text-amber' : 'text-mint';
+  const produk = products.find((p) => p.barcode === productBarcode);
+  const stockColor = (s: number) => s === 0 ? 'text-alert' : s <= 5 ? 'text-amber' : 'text-mint';
 
   return (
     <div className="p-4 space-y-4">
@@ -49,8 +49,13 @@ export default function Stock() {
           <label className="text-xs text-frost-dim">Tanggal</label>
           <input type="date" value={tanggal} onChange={(e) => setTanggal(e.target.value)} className={inputCls} required />
         </div>
-        <input placeholder="Barcode" value={barcode} onChange={(e) => setBarcode(e.target.value)} className={inputCls} />
-        {produk && <div className="text-xs bg-ice/8 p-2 rounded-lg text-ice border border-ice/20">Produk: {produk.nama} (Stok: {produk.stock})</div>}
+        <select value={productBarcode} onChange={(e) => setProductBarcode(e.target.value)} className={inputCls} required>
+          <option value="">Pilih Produk...</option>
+          {products.map((p) => (
+            <option key={p.id} value={p.barcode}>{p.nama} (Stok: {p.stock})</option>
+          ))}
+        </select>
+        {produk && <div className="text-xs bg-ice/8 p-2 rounded-lg text-ice border border-ice/20">Produk: {produk.nama} · Stok saat ini: {produk.stock}</div>}
         <input placeholder="Jumlah" type="number" value={qty || ''} onChange={(e) => setQty(Number(e.target.value))} className={inputCls} />
         <input placeholder="Keterangan (opsional)" value={keterangan} onChange={(e) => setKeterangan(e.target.value)} className={inputCls} />
         <button type="submit" disabled={mut.isPending} className="w-full bg-gradient-to-r from-ice to-ice-dim text-bg-deep py-2 rounded-lg font-semibold disabled:opacity-35">{mut.isPending ? 'Menyimpan...' : 'Simpan'}</button>
@@ -60,7 +65,7 @@ export default function Stock() {
         <h2 className="font-semibold text-frost-dim text-sm">Daftar Stock</h2>
         {isLoading ? <Spinner /> : products.map((p) => (
           <div key={p.id} className="panel p-3 flex justify-between items-center text-sm">
-            <div><p className="font-medium text-frost">{p.nama}</p><p className="text-xs text-frost-dim">{p.barcode}</p></div>
+            <div><p className="font-medium text-frost">{p.nama}</p></div>
             <div className="flex items-center gap-2">
               <span className={`w-1.5 h-1.5 rounded-full ${p.stock === 0 ? 'bg-alert' : p.stock <= 5 ? 'bg-amber' : 'bg-mint'}`} />
               <span className={`font-bold text-lg font-mono ${stockColor(p.stock)}`}>{p.stock}</span>

@@ -36,7 +36,11 @@ export default function Product() {
     onError: () => showToast('Gagal menghapus produk', 'error'),
   });
 
-  const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); saveMutation.mutate(form); };
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const payload = { ...form, barcode: form.barcode || `P${Date.now()}` };
+    saveMutation.mutate(payload);
+  };
   const handleEdit = (p: ProductType) => { const { id: _id, ...rest } = p; void _id; setForm(rest); setEditing(p.id); };
   const handleDelete = (id: string) => { if (confirm('Hapus produk?')) delMutation.mutate(id); };
 
@@ -46,7 +50,6 @@ export default function Product() {
 
       <form onSubmit={handleSubmit} className="panel p-4 space-y-3 text-sm">
         <div className="grid grid-cols-2 gap-3">
-          <input placeholder="Barcode" value={form.barcode} onChange={(e) => setForm({ ...form, barcode: e.target.value })} className={inputCls} required />
           <input placeholder="Nama Produk" value={form.nama} onChange={(e) => setForm({ ...form, nama: e.target.value })} className={inputCls} required />
           <input placeholder="Kategori" value={form.kategori} onChange={(e) => setForm({ ...form, kategori: e.target.value })} className={inputCls} />
           <input type="date" value={form.expired} onChange={(e) => setForm({ ...form, expired: e.target.value })} className={inputCls} />
@@ -69,7 +72,7 @@ export default function Product() {
               <div key={p.id} className="panel p-4 flex justify-between items-start text-sm">
                 <div>
                   <p className="font-semibold text-frost">{p.nama}</p>
-                  <p className="text-xs text-frost-dim">{p.barcode} · {p.kategori}</p>
+                  <p className="text-xs text-frost-dim">{p.kategori}</p>
                   <p className="text-xs text-frost-dim mt-1">Modal: {formatRupiah(p.modal)} · Ecer: {formatRupiah(p.ecer)} · Grosir: {formatRupiah(p.grosir)} (min {p.minGrosir})</p>
                   <div className="flex items-center gap-1.5 mt-1">
                     <span className={`w-1.5 h-1.5 rounded-full ${p.stock === 0 ? 'bg-alert' : p.stock <= 5 ? 'bg-amber' : 'bg-mint'}`} />
