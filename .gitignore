@@ -33,3 +33,4 @@ vite.config.js
 
 # demo recording artefacts
 /demo-output/
+/docs/media/demo.webm
