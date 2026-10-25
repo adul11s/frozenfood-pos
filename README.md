@@ -270,17 +270,42 @@ Jika qty < min_grosir  → harga = ecer
    - Me-refresh query (dashboard, products, chart)
 3. Halaman Setting menampilkan jumlah transaksi yang pending
 
+### Idempotensi (server-side, GAS backend)
+
+Semua sheet mutation di sisi GAS dilindungi dengan dedupe key sebelum `appendRow`, sehingga retry sinkronisasi offline tidak pernah menggandakan data:
+
+| Sheet | Kunci idempotensi | Kode | Test |
+|---|---|---|---|
+| SALES | `invoice` | `gas/Code.gs` (`createSale`) | `src/utils/offlineSync.test.ts` |
+| PURCHASE | `body.no` | `gas/Code.gs` (`createPurchase`) | `gas/__tests__/code.idempotency.test.ts` |
+| STOCK (in/out) | `body.id` / `body.key` | `gas/Code.gs` (`stockIn`/`stockOut`) | `gas/__tests__/code.idempotency.test.ts` |
+| EXPENSE | `body.id` | `gas/Code.gs` (`createExpense`) | `gas/__tests__/code.idempotency.test.ts` |
+| CAPITAL | `body.id` | `gas/Code.gs` (`createCapital`) | `gas/__tests__/code.idempotency.test.ts` |
+
+Skenario offline→online dengan kegagalan di tengah sync (mutation gagal ½ jalan, lalu pemulihan → setiap mutation diterapkan tepat satu kali) tercakup di `gas/__tests__/code.idempotency.test.ts`.
+
 ## Scripts
 
 ```bash
 npm run dev       # Development server
 npm run build     # Production build (tsc + vite build)
 npm run lint      # Lint dengan oxlint
-npm run test      # Unit test dengan vitest (14 test: harga grosir, role access, antrean offline)
+npm run test      # Unit test dengan vitest (20 test: harga grosir, role access, antrean offline, idempotensi GAS)
 npm run preview   # Preview production build
 ```
 
-Status quality gates: `tsc -b` ✅ · `oxlint` ✅ · `vitest run` ✅ 14/14 (3 file test).
+Status quality gates: `tsc -b` ✅ · `oxlint` ✅ · `vitest run` ✅ 20/20 (4 file test).
+
+## Audit
+
+- **Lighthouse**: skor performa, aksesibilitas, best-practices, SEO, dan catatan tentang kategori PWA (dihapus di Lighthouse v12) ada di [`docs/lighthouse.md`](/docs/lighthouse.md) dengan report JSON mentah dan perintah reproduksinya.
+
+## Known Gaps
+
+- **E2E ke GAS live belum dijalankan** — pipeline E2E terhadap deployment Apps Script nyata butuh deploy baru; saat ini backend hanya diuji via unit test sandbox (mock Sheets service).
+- **Tidak ada skenario offline→online dengan screenshot** — perilaku hanya dibuktikan via unit test (mock), belum direkam visual.
+- **Model auth demo** — shared secret masih di sisi klien dan password tersimpan plain di sheet (lihat catatan di atas).
+- **Lighthouse skor bergantung mesin** — angka diambil dari satu run di laptop lokal; di CI dapat berbeda. Report JSON mentah dilampirkan sebagai bukti.
 
 ## Roadmap
 

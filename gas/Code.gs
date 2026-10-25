@@ -336,7 +336,14 @@ function getStock(body) {
 function stockIn(body) {
   var sheet = SS.getSheetByName('STOCK');
   var tanggal = body.tanggal ? new Date(body.tanggal) : new Date();
-  sheet.appendRow([String(Date.now()), tanggal, body.barcode, 'in', Number(body.qty), body.keterangan || '']);
+  // Idempotensi: kunci = body.id (dikirim frontend saat retry sync offline).
+  // Tanpa kunci -> perilaku lama (id timestamp per-call, tidak dedupe).
+  var key = body.id || body.key;
+  var dup = findRowByKey(sheet, 0, key);
+  if (key && dup !== -1) {
+    return { success: true, id: String(key), duplicate: true };
+  }
+  sheet.appendRow([String(key || Date.now()), tanggal, body.barcode, 'in', Number(body.qty), body.keterangan || '']);
 
   var pSheet = SS.getSheetByName('PRODUCTS');
   var data = pSheet.getDataRange().getValues();
@@ -352,7 +359,13 @@ function stockIn(body) {
 function stockOut(body) {
   var sheet = SS.getSheetByName('STOCK');
   var tanggal = body.tanggal ? new Date(body.tanggal) : new Date();
-  sheet.appendRow([String(Date.now()), tanggal, body.barcode, 'out', Number(body.qty), body.keterangan || '']);
+  // Idempotensi: kunci = body.id (dikirim frontend saat retry sync offline).
+  var key = body.id || body.key;
+  var dup = findRowByKey(sheet, 0, key);
+  if (key && dup !== -1) {
+    return { success: true, id: String(key), duplicate: true };
+  }
+  sheet.appendRow([String(key || Date.now()), tanggal, body.barcode, 'out', Number(body.qty), body.keterangan || '']);
 
   var pSheet = SS.getSheetByName('PRODUCTS');
   var data = pSheet.getDataRange().getValues();
@@ -369,6 +382,11 @@ function stockOut(body) {
 function createPurchase(body) {
   var sheet = SS.getSheetByName('PURCHASE');
   var no = body.no || String(Date.now());
+  // Idempotensi: kunci = no pembelian. Retry sync offline / double-submit
+  // dengan `no` sama tidak menggandakan baris.
+  if (body.no && findRowByKey(sheet, 0, no) !== -1) {
+    return { success: true, no: no, duplicate: true };
+  }
   var tanggal = body.tanggal ? new Date(body.tanggal) : new Date();
   var qty = Number(body.qty);
   var modal = Number(body.modal);
@@ -487,6 +505,10 @@ function getExpenses() {
 function createExpense(body) {
   var sheet = SS.getSheetByName('EXPENSE');
   var id = body.id || String(Date.now());
+  // Idempotensi: kunci = id pengeluaran.
+  if (body.id && findRowByKey(sheet, 0, id) !== -1) {
+    return { success: true, id: id, duplicate: true };
+  }
   var tanggal = body.tanggal ? new Date(body.tanggal) : new Date();
   sheet.appendRow([id, tanggal, body.kategori, Number(body.nominal), body.keterangan]);
   log('CREATE_EXPENSE', body.kategori + ' ' + body.nominal);
@@ -511,6 +533,10 @@ function getCapitals() {
 function createCapital(body) {
   var sheet = SS.getSheetByName('CAPITAL');
   var id = body.id || String(Date.now());
+  // Idempotensi: kunci = id modal.
+  if (body.id && findRowByKey(sheet, 0, id) !== -1) {
+    return { success: true, id: id, duplicate: true };
+  }
   var tanggal = body.tanggal ? new Date(body.tanggal) : new Date();
   sheet.appendRow([id, tanggal, body.jenis, Number(body.nominal), body.keterangan]);
   log('CREATE_CAPITAL', body.jenis + ' ' + body.nominal);
@@ -727,6 +753,20 @@ function getChartData(body) {
 }
 
 // === UTILS ===
+
+/**
+ * Cari baris berdasarkan nilai kolom kunci (0-indexed pada array values).
+ * Dipakai untuk idempotensi PURCHASE/STOCK/EXPENSE/CAPITAL: jika kunci
+ * sudah ada di sheet (retry sync offline, double-submit), jangan append lagi.
+ */
+function findRowByKey(sheet, colIndex, key) {
+  if (key === undefined || key === null || String(key) === '') return -1;
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][colIndex]) === String(key)) return i;
+  }
+  return -1;
+}
 
 function log(aksi, detail) {
   var sheet = SS.getSheetByName('LOG');
