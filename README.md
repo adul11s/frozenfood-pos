@@ -1,4 +1,5 @@
 # Bios Frozen Food
+[![CI](https://github.com/adul11s/frozenfood-pos/actions/workflows/ci.yml/badge.svg)](https://github.com/adul11s/frozenfood-pos/actions/workflows/ci.yml)
 
 PWA (Progressive Web App) kasir untuk toko Bios Frozen Food. Dibangun dengan React + TypeScript + Vite, menggunakan Google Sheets sebagai database dan Google Apps Script sebagai API. Bekerja offline dan tersinkronisasi otomatis saat online.
 
