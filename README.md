@@ -5,6 +5,12 @@ PWA (Progressive Web App) kasir untuk toko Bios Frozen Food. Dibangun dengan Rea
 
 **Demo live: https://frozenfood-pos.vercel.app** — installable sebagai PWA (terverifikasi HTTP 200, 2026-10-25). Backend GAS tetap butuh deployment sendiri untuk data nyata.
 
+### Video demo
+
+![Demo kasir Bios Frozen Food](docs/media/demo.gif)
+
+Rekaman 44 detik dari deployment live (viewport mobile 420×860, karena ini PWA): login `admin` / `admin123` → dashboard (nilai stock nyata) → Kasir → Produk → Stock → Laporan → Pengaturan. Versi penuh: [`docs/media/demo.mp4`](docs/media/demo.mp4) (326 KB). Direkam otomatis dengan `node scripts/demo-video.mjs` (Playwright).
+
 > **Status: DEMO.** Ini adalah aplikasi demo/portfolio, bukan produksi.
 > Model auth-nya demo: login membuat token sesi (disimpan di sheet `SESSIONS`, berlaku 24 jam) dan setiap request membawa shared secret (`VITE_GAS_SECRET`, dibandingkan dengan Script Properties `SHARED_SECRET` di GAS). Secret tetap berada di sisi klien dan password user tersimpan plain di sheet — cukup untuk menghentikan akses tanpa kredensial, tidak lebih. Jangan pakai data nyata.
 
