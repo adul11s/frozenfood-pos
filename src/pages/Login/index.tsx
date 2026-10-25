@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
-import { login } from '../../services/api';
+import { login, setStoredToken } from '../../services/api';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -16,6 +16,7 @@ export default function Login() {
     try {
       const res = await login(username, password);
       if (res.success && res.user) {
+        setStoredToken(res.token || '');
         setUser(res.user as Parameters<typeof setUser>[0]);
         navigate('/');
       } else {
@@ -41,8 +42,8 @@ export default function Login() {
               <line x1="2" y1="12" x2="22" y2="12" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold font-display text-frost">FrozenPOS</h1>
-          <p className="text-frost-dim text-xs mt-1 uppercase tracking-widest">Frozen Food Point of Sale</p>
+          <h1 className="text-2xl font-bold font-display text-frost">Bios Frozen Food</h1>
+          <p className="text-frost-dim text-xs mt-1 uppercase tracking-widest">Point of Sale</p>
         </div>
 
         {error && (
@@ -77,9 +78,6 @@ export default function Login() {
           Masuk
         </button>
 
-        <p className="text-center text-frost-dim text-xs">
-          Default: owner/owner123 · admin/admin123 · kasir/kasir123
-        </p>
       </form>
     </div>
   );

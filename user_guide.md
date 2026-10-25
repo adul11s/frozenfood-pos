@@ -1,6 +1,6 @@
-# Panduan Pengguna FrozenFood POS
+# Panduan Pengguna Bios Frozen Food
 
-Panduan lengkap untuk menggunakan aplikasi kasir Frozen Food POS.
+Panduan lengkap untuk menggunakan aplikasi kasir Bios Frozen Food.
 
 ---
 
@@ -28,7 +28,7 @@ Panduan lengkap untuk menggunakan aplikasi kasir Frozen Food POS.
 
 ### Cara Login
 
-1. Buka aplikasi FrozenFood POS di browser
+1. Buka aplikasi Bios Frozen Food di browser
 2. Masukkan **Username** dan **Password**
 3. Klik **"Masuk"**
 
@@ -395,7 +395,7 @@ Halaman untuk melihat info aplikasi dan logout.
 | Status Koneksi | Online / Offline |
 | User | Nama user yang sedang login |
 | Role | Role user (Owner / Admin / Kasir) |
-| Nama Toko | Nama toko (TOKO FROZEN FOOD) |
+| Nama Toko | Nama toko (BIOS FROZEN FOOD) |
 | Receipt | Ukuran thermal printer (58mm / 80mm) |
 | PWA Version | Versi aplikasi |
 
@@ -545,7 +545,7 @@ Aplikasi bisa diinstall seperti aplikasi native di Android/iPhone/desktop.
 ### Isi Nota
 
 ```
-TOKO FROZEN FOOD
+BIOS FROZEN FOOD
 12/07/2026
 --------------------------------
 Nugget Fiesta        Rp100.000
@@ -573,7 +573,7 @@ Kembali              Rp15.000
 ## FAQ
 
 ### Q: Bagaimana cara mengubah nama toko di nota?
-Buka file `src/components/receipt/ThermalPrinter.tsx`, ubah teks "TOKO FROZEN FOOD".
+Buka file `src/components/receipt/ThermalPrinter.tsx`, ubah teks "BIOS FROZEN FOOD".
 
 ### Q: Bagaimana cara mengubah harga grosir minimum?
 Edit produk di halaman Produk, ubah field "Min Grosir", klik Update.
@@ -595,3 +595,113 @@ Ya, setiap user login dengan akunnya sendiri. Nama kasir tercatat di setiap tran
 
 ### Q: Bagaimana cara melihat detail penjualan?
 Buka Google Sheets, lihat sheet `SALES` (ringkasan) dan `SALES_DETAIL` (rincian per item).
+
+---
+
+## 16. Panduan Per Role
+
+### Admin
+
+#### A. Pengisian Barang (Produk Baru)
+
+| Langkah | Cara |
+|---------|------|
+| 1 | Buka menu **Produk** di sidebar |
+| 2 | Isi form: **Nama Produk**, **Kategori** (contoh: Nugget, Sosis, Daging), **Modal** (harga beli), **Ecer** (harga jual satuan), **Grosir** (harga jual grosir), **Min Grosir** (minimal qty untuk harga grosir) |
+| 3 | Isi **Stock** awal jika ada, **Expired** (tanggal kadaluarsa) |
+| 4 | Klik **Tambah** — produk tersimpan |
+| 5 | Barcode otomatis dibuat (`P{timestamp}`) |
+
+> Untuk mengubah produk: klik **Edit** di daftar produk, ubah data, klik **Update**.
+
+#### B. Cek Barang Masuk
+
+Ada 2 cara barang masuk:
+
+**1. Pembelian dari Supplier** (menu **Pembelian**)
+- Pilih tanggal, supplier, produk, jumlah, modal per satuan
+- Klik **Simpan Pembelian** — otomatis muncul nota pembelian (bisa di-print)
+- Data tersimpan di sheet `PURCHASE`
+
+**2. Stock In** (menu **Stock**)
+- Pilih produk, isi jumlah, keterangan (misal: "retur", "sisa display")
+- Klik **Simpan** — stock produk bertambah
+- Riwayat tersimpan di sheet `STOCK`
+
+**Cara melihat riwayat barang masuk:**
+- Buka Google Sheets > sheet `PURCHASE` atau `STOCK`
+- Filter kolom `tanggal` untuk melihat per periode
+
+#### C. Cek Barang Keluar
+
+Ada 2 cara barang keluar:
+
+**1. Penjualan (otomatis)** — saat kasir melakukan transaksi di menu **Kasir**, stock produk otomatis berkurang
+**2. Stock Out** (menu **Stock**)
+- Pilih mode **Stock Out**
+- Pilih produk, isi jumlah, keterangan (misal: "expired", "rusak")
+- Klik **Simpan** — stock produk berkurang
+
+**Cara melihat riwayat barang keluar:**
+- Buka Google Sheets > sheet `SALES_DETAIL` (penjualan) atau `STOCK` (stock out manual)
+
+#### D. Stok Opname
+- Buka menu **Stock** — semua produk tampil dengan stok terkini
+- Jika ada selisih, gunakan **Stock In** atau **Stock Out** untuk penyesuaian
+
+---
+
+### Kasir
+
+#### A. Melakukan Transaksi
+
+| Langkah | Cara |
+|---------|------|
+| 1 | Buka menu **Kasir** di sidebar |
+| 2 | **Cari produk** — ketik nama produk di kolom pencarian, grid akan terfilter otomatis |
+| 3 | **Klik produk** yang ingin dibeli — masuk ke keranjang |
+| 4 | Atur jumlah: klik **+/-** di keranjang untuk menambah/mengurangi qty |
+| 5 | Jika qty >= Min Grosir, harga otomatis berubah ke harga grosir (tulisan **GROSIR** muncul) |
+| 6 | Pilih **metode pembayaran**: Tunai, QRIS, atau Transfer |
+| 7 | Jika **Tunai**: isi nominal uang diterima, kembalian otomatis terhitung |
+| 8 | Klik **BAYAR** — transaksi diproses |
+| 9 | Nota pembayaran muncul — klik **PRINT** untuk cetak (thermal printer atau kertas biasa) |
+| 10 | Selesai! Keranjang otomatis kosong siap untuk pelanggan berikutnya |
+
+> **Catatan:** Jika ingin menghapus item dari keranjang, klik **✕** di sebelah item.
+
+#### B. Cek Barang / Stok Produk
+
+| Cara | Langkah |
+|------|---------|
+| Dari menu **Kasir** | Lihat badge **Stok** di setiap kartu produk (hijau ≥ 6, kuning 1-5, merah habis) |
+| Dari menu **Stock** | Lihat semua produk dengan stok terkini, diurutkan otomatis |
+
+> Stok akan berkurang otomatis setiap kali transaksi berhasil.
+
+#### C. Cek Penghasilan Harian
+
+| Cara | Langkah |
+|------|---------|
+| **1. Dashboard** | Buka menu **Dashboard** — lihat **Penjualan Hari Ini** (omzet) dan **Profit Hari Ini** (keuntungan bersih) |
+| **2. Laporan** | Buka menu **Laporan** — pilih **Hari Ini**, lihat Omzet, Profit, Pengeluaran, Produk Terlaris |
+| **3. Grafik** | Dashboard juga menampilkan grafik penjualan 7 hari terakhir |
+
+**Keterangan kartu di Dashboard:**
+| Kartu | Arti |
+|-------|------|
+| 💰 **Modal** | Total modal yang ditanam (dari menu Modal) |
+| 📦 **Nilai Stock** | Total nilai barang (modal × stok) |
+| 🧾 **Penjualan Hari Ini** | Omzet kotor hari ini |
+| 📈 **Profit Hari Ini** | Keuntungan bersih (omzet - modal) |
+
+> Kasir hanya bisa melihat laporan (read-only), tidak bisa edit/menambah data pengeluaran atau modal.
+
+---
+
+### Owner
+
+Owner memiliki akses penuh ke semua menu, termasuk:
+- **Pengaturan** — mengubah password user, role, nama toko (khusus owner)
+- **Modal** — menambah/mengurangi modal usaha
+- **Laporan custom** — filter tanggal bebas untuk laporan kapan saja

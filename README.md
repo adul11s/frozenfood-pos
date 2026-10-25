@@ -1,6 +1,9 @@
-# FrozenFood POS
+# Bios Frozen Food
 
-PWA (Progressive Web App) kasir untuk toko Frozen Food. Dibangun dengan React + TypeScript + Vite, menggunakan Google Sheets sebagai database dan Google Apps Script sebagai API. Bekerja offline dan tersinkronisasi otomatis saat online.
+PWA (Progressive Web App) kasir untuk toko Bios Frozen Food. Dibangun dengan React + TypeScript + Vite, menggunakan Google Sheets sebagai database dan Google Apps Script sebagai API. Bekerja offline dan tersinkronisasi otomatis saat online.
+
+> **Status: DEMO.** Ini adalah aplikasi demo/portfolio, bukan produksi.
+> Model auth-nya demo: login membuat token sesi (disimpan di sheet `SESSIONS`, berlaku 24 jam) dan setiap request membawa shared secret (`VITE_GAS_SECRET`, dibandingkan dengan Script Properties `SHARED_SECRET` di GAS). Secret tetap berada di sisi klien dan password user tersimpan plain di sheet — cukup untuk menghentikan akses tanpa kredensial, tidak lebih. Jangan pakai data nyata.
 
 ## Fitur
 
@@ -89,19 +92,20 @@ frozenfood-pos/
 ### 1. Google Sheets Backend
 
 1. Buka [sheets.new](https://sheets.new), buat spreadsheet baru
-2. Beri nama **"FrozenFood POS"**
+2. Beri nama **"Bios Frozen Food"**
 3. Klik **Extensions > Apps Script**
 4. Hapus kodedefault, paste seluruh isi `gas/Code.gs`
-5. Jalankan fungsi `setup()` (klik Run) — ini akan membuat 11 sheet:
-   - `USERS`, `PRODUCTS`, `STOCK`, `PURCHASE`, `SALES`, `SALES_DETAIL`, `EXPENSE`, `CAPITAL`, `SUPPLIER`, `CUSTOMER`, `LOG`
-6. Klik **Deploy > New deployment**
-7. Klik gear icon > **Web app**
-8. Set:
-   - Description: `FrozenFood POS API`
+5. Jalankan fungsi `setup()` (klik Run) — ini akan membuat 12 sheet:
+   - `USERS`, `PRODUCTS`, `STOCK`, `PURCHASE`, `SALES`, `SALES_DETAIL`, `EXPENSE`, `CAPITAL`, `SUPPLIER`, `CUSTOMER`, `LOG`, `SESSIONS`
+6. Buka **Execution log** hasil run `setup()` — copy nilai `SHARED_SECRET` yang tercetak (sudah tersimpan otomatis di Script Properties)
+7. Klik **Deploy > New deployment**
+8. Klik gear icon > **Web app**
+9. Set:
+   - Description: `Bios Frozen Food API`
    - Execute as: **Me**
    - Who has access: **Anyone**
-9. Klik **Deploy** > authorize permissions
-10. Copy URL deployment (format: `https://script.google.com/macros/s/AKfyc.../exec`)
+10. Klik **Deploy** > authorize permissions
+11. Copy URL deployment (format: `https://script.google.com/macros/s/AKfyc.../exec`)
 
 ### 2. Frontend Setup
 
@@ -116,8 +120,10 @@ npm install
 # Buat file .env
 cp .env.example .env
 
-# Edit .env, isi dengan URL deployment Google Apps Script
+# Edit .env, isi VITE_GAS_URL (URL deployment GAS)
+# dan VITE_GAS_SECRET (SHARED_SECRET dari Script Properties)
 echo 'VITE_GAS_URL=https://script.google.com/macros/s/AKfyc.../exec' > .env
+echo 'VITE_GAS_SECRET=<shared-secret-dari-execution-log-setup>' >> .env
 
 # Jalankan development server
 npm run dev
@@ -141,7 +147,7 @@ Atau via [vercel.com](https://vercel.com):
 - Framework Preset: **Vite**
 - Build Command: `npm run build`
 - Output Directory: `dist`
-- Environment Variables: `VITE_GAS_URL` = URL deployment GAS
+- Environment Variables: `VITE_GAS_URL` dan `VITE_GAS_SECRET` = URL deployment GAS + shared secret
 
 Deploy production:
 ```bash
@@ -216,6 +222,11 @@ Satu spreadsheet berisi 11 sheet:
 ### LOG
 | timestamp | aksi | detail |
 
+### SESSIONS
+| token | username | created | expires |
+
+Token sesi dari login, berlaku 24 jam. Token kedaluwarsa dihapus otomatis saat cek auth.
+
 ## API Endpoints
 
 | Endpoint | Method | Deskripsi |
@@ -265,8 +276,11 @@ Jika qty < min_grosir  → harga = ecer
 npm run dev       # Development server
 npm run build     # Production build (tsc + vite build)
 npm run lint      # Lint dengan oxlint
+npm run test      # Unit test dengan vitest (14 test: harga grosir, role access, antrean offline)
 npm run preview   # Preview production build
 ```
+
+Status quality gates: `tsc -b` ✅ · `oxlint` ✅ · `vitest run` ✅ 14/14 (3 file test).
 
 ## Roadmap
 

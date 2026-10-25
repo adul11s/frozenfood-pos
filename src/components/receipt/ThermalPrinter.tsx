@@ -1,4 +1,4 @@
-import { formatRupiah, formatDate } from '../../utils';
+import { formatRupiah, formatDateTime } from '../../utils';
 
 interface ThermalPrinterProps {
   sale: Record<string, unknown>;
@@ -41,8 +41,21 @@ export default function ThermalPrinter({
             fontFamily: 'var(--font-mono)',
           }}
         >
-          <div className="text-center font-bold">TOKO FROZEN FOOD</div>
-          <div className="text-center">{formatDate(new Date())}</div>
+          <div className="text-center font-bold">BIOS FROZEN FOOD</div>
+          <div className="text-center my-1">{'-'.repeat(32)}</div>
+
+          <div className="flex justify-between">
+            <span>No</span>
+            <span>{String(sale.invoice || '')}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Tanggal</span>
+            <span>{formatDateTime(sale.tanggal ? new Date(sale.tanggal as string) : new Date())}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Kasir</span>
+            <span>{String(sale.kasir || '')}</span>
+          </div>
           <div className="text-center my-1">{'-'.repeat(32)}</div>
 
           {cart.map((item, i) => (

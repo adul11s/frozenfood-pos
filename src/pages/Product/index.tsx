@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getProducts, createProduct, updateProduct, deleteProduct } from '../../services/product';
+import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getProductsPage, createProduct, updateProduct, deleteProduct } from '../../services/product';
 import { formatRupiah } from '../../utils';
 import { PageHeader, Spinner } from '../../components/ui/Card';
 import { useToast } from '../../hooks/useToast';
@@ -11,16 +11,26 @@ const empty: Omit<ProductType, 'id'> = {
 };
 
 const inputCls = 'panel-2 px-3 py-2 text-frost placeholder:text-frost-dim outline-none focus:border-ice-dim transition-colors';
+const PAGE_SIZE = 20;
 
 export default function Product() {
   const [form, setForm] = useState(empty);
   const [editing, setEditing] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
   const qc = useQueryClient();
   const { showToast } = useToast();
 
-  const { data: products = [], isLoading } = useQuery<ProductType[]>({
-    queryKey: ['products'],
-    queryFn: getProducts,
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+  } = useInfiniteQuery({
+    queryKey: ['products', 'paginated'],
+    queryFn: ({ pageParam = 1 }) => getProductsPage(pageParam, PAGE_SIZE),
+    getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.page + 1 : undefined,
+    initialPageParam: 1,
   });
 
   const saveMutation = useMutation({
@@ -36,6 +46,13 @@ export default function Product() {
     onError: () => showToast('Gagal menghapus produk', 'error'),
   });
 
+  const allProducts = data?.pages.flatMap((p) => p.data) ?? [];
+  const totalCount = data?.pages[0]?.total ?? 0;
+
+  const filtered = search
+    ? allProducts.filter((p) => p.nama.toLowerCase().includes(search.toLowerCase()))
+    : allProducts;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const payload = { ...form, barcode: form.barcode || `P${Date.now()}` };
@@ -46,7 +63,7 @@ export default function Product() {
 
   return (
     <div className="p-4 space-y-4">
-      <PageHeader title="Produk" subtitle="Kelola data produk" />
+      <PageHeader title="Produk" subtitle={`Kelola data produk (${filtered.length}/${totalCount})`} />
 
       <form onSubmit={handleSubmit} className="panel p-4 space-y-3 text-sm">
         <div className="grid grid-cols-2 gap-3">
@@ -65,10 +82,17 @@ export default function Product() {
         </div>
       </form>
 
+      <input
+        placeholder="Cari produk..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        className="w-full panel-2 px-3 py-2 text-sm text-frost placeholder:text-frost-dim outline-none"
+      />
+
       {isLoading ? <Spinner /> : (
         <div className="space-y-2">
-          {products.length === 0 ? <p className="text-center text-frost-dim py-6 text-sm">Belum ada produk</p> : (
-            products.map((p) => (
+          {filtered.length === 0 ? <p className="text-center text-frost-dim py-6 text-sm">Belum ada produk</p> : (
+            filtered.map((p) => (
               <div key={p.id} className="panel p-4 flex justify-between items-start text-sm">
                 <div>
                   <p className="font-semibold text-frost">{p.nama}</p>
@@ -86,6 +110,16 @@ export default function Product() {
                 </div>
               </div>
             ))
+          )}
+
+          {hasNextPage && !search && (
+            <button
+              onClick={() => fetchNextPage()}
+              disabled={isFetchingNextPage}
+              className="w-full panel-2 py-3 rounded-lg text-sm text-frost-dim font-semibold disabled:opacity-35"
+            >
+              {isFetchingNextPage ? 'Memuat...' : `Muat Lebih Banyak (${allProducts.length}/${totalCount})`}
+            </button>
           )}
         </div>
       )}

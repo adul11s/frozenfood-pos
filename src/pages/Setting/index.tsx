@@ -34,7 +34,7 @@ export default function Setting() {
         </div>
         <div className="flex justify-between items-center">
           <span className="text-frost-dim">Nama Toko</span>
-          <span className="font-medium text-frost">TOKO FROZEN FOOD</span>
+          <span className="font-medium text-frost">BIOS FROZEN FOOD</span>
         </div>
         <div className="flex justify-between items-center">
           <span className="text-frost-dim">Receipt</span>

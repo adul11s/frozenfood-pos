@@ -20,26 +20,39 @@
  * - Purchase/Stock/Expense/Capital: menerima tanggal dari frontend (yyyy-mm-dd),
  *   dikonversi ke Date object sebelum disimpan
  *
- * CHANGES (Role-based access):
- * - 3 role: owner, admin, kasir
+ * CHANGES (Auth - token sesi + shared secret):
+ * - Password user tidak lagi dipakai sebagai kredensial request.
+ *   Login memverifikasi username/password lalu membuat token sesi
+ *   (disimpan di sheet SESSIONS, expired 24 jam - pendekatan sama
+ *   dengan diary-teachlife). Setiap request lain wajib membawa
+ *   `token` (sesi aktif) dan `secret` (shared secret yang disimpan
+ *   di Script Properties, bukan di source code).
+ * 3 role: owner, admin, kasir
  * - Default users: owner/owner123, admin/admin123, kasir/kasir123
  * - Pembatasan menu ada di frontend (src/config/permissions.ts)
+ *
+ * CATATAN DEMO: ini model auth demo (bukan produksi). Secret tetap
+ * berada di sisi klien (VITE_GAS_SECRET) dan password tersimpan
+ * plain di sheet. Cukup untuk mencegah akses tanpa kredensial.
  */
 
 const SS = SpreadsheetApp.getActiveSpreadsheet();
+
+var SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24 jam
 
 var SHEETS = {
   USERS:        ['id', 'username', 'password', 'nama', 'role'],
   PRODUCTS:     ['id', 'barcode', 'nama', 'kategori', 'modal', 'ecer', 'grosir', 'min_grosir', 'stock', 'expired'],
   STOCK:        ['id', 'tanggal', 'barcode', 'jenis', 'qty', 'keterangan'],
-  PURCHASE:     ['no', 'supplier', 'tanggal', 'barcode', 'qty', 'modal'],
+  PURCHASE:     ['no', 'supplier', 'tanggal', 'barcode', 'qty', 'modal', 'total_modal'],
   SALES:        ['invoice', 'tanggal', 'kasir', 'subtotal', 'diskon', 'total', 'bayar', 'kembali', 'metode'],
   SALES_DETAIL: ['invoice', 'barcode', 'produk', 'qty', 'harga', 'modal', 'profit'],
   EXPENSE:      ['id', 'tanggal', 'kategori', 'nominal', 'keterangan'],
   CAPITAL:      ['id', 'tanggal', 'jenis', 'nominal', 'keterangan'],
   SUPPLIER:     ['id', 'nama', 'telepon', 'alamat'],
   CUSTOMER:     ['id', 'nama', 'telepon', 'poin'],
-  LOG:          ['timestamp', 'aksi', 'detail']
+  LOG:          ['timestamp', 'aksi', 'detail'],
+  SESSIONS:     ['token', 'username', 'created', 'expires']
 };
 
 function setup() {
@@ -64,6 +77,16 @@ function setup() {
     suppliers.appendRow(['1', 'Supplier Umum', '-', '-']);
   }
 
+  // Shared secret disimpan di Script Properties (bukan source code).
+  // Jalankan setup() sekali, buka Execution log untuk melihat secretnya.
+  var props = PropertiesService.getScriptProperties();
+  var secret = props.getProperty('SHARED_SECRET');
+  if (!secret) {
+    secret = Utilities.getUuid() + Utilities.getUuid().replace(/-/g, '');
+    props.setProperty('SHARED_SECRET', secret);
+  }
+  Logger.log('SHARED_SECRET (untuk VITE_GAS_SECRET di .env): ' + secret);
+
   Logger.log('Setup selesai. Semua sheet dibuat.');
 }
 
@@ -81,6 +104,9 @@ function handle(e) {
     endpoint = endpoint.replace(/^\//, '');
 
     var action = endpoint.replace('api/', '').replace(/^api\//, '');
+    if (action !== 'login' && !requireAuth(p, body)) {
+      return json({ success: false, message: 'Unauthorized: token/secret tidak valid', code: 401 });
+    }
     var result = route(action, p, body);
     return json(result);
   } catch (err) {
@@ -129,16 +155,54 @@ function route(action, p, body) {
   }
 }
 
-// === LOGIN ===
+// === AUTH ===
+function getSharedSecret() {
+  return PropertiesService.getScriptProperties().getProperty('SHARED_SECRET') || '';
+}
+
+function requireAuth(p, body) {
+  var secret = String(body.secret || p.secret || '');
+  if (!getSharedSecret() || secret !== getSharedSecret()) return false;
+  return isValidToken(String(body.token || p.token || ''));
+}
+
+function isValidToken(token) {
+  if (!token) return false;
+  var sheet = SS.getSheetByName('SESSIONS');
+  var data = sheet.getDataRange().getValues();
+  var now = Date.now();
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0] === token) {
+      var expires = data[i][3] instanceof Date ? data[i][3].getTime() : new Date(data[i][3]).getTime();
+      if (expires > now) return true;
+      sheet.deleteRow(i + 1); // bersihkan token kedaluwarsa
+      return false;
+    }
+  }
+  return false;
+}
+
 function login(p, body) {
+  // Login juga harus membawa shared secret agar password sheet
+  // tidak bisa dicoba langsung dari luar aplikasi.
+  if (!getSharedSecret() || String(body.secret || p.secret || '') !== getSharedSecret()) {
+    return { success: false, message: 'Shared secret tidak valid' };
+  }
+
   var username = body.username || p.username;
   var password = body.password || p.password;
   var sheet = SS.getSheetByName('USERS');
   var data = sheet.getDataRange().getValues();
   for (var i = 1; i < data.length; i++) {
     if (data[i][1] === username && data[i][2] === password) {
+      var token = Utilities.getUuid() + Utilities.getUuid().replace(/-/g, '');
+      var now = new Date();
+      var expires = new Date(now.getTime() + SESSION_TTL_MS);
+      SS.getSheetByName('SESSIONS').appendRow([token, username, now, expires]);
       return {
         success: true,
+        token: token,
+        expiresAt: expires.toISOString(),
         user: { id: String(data[i][0]), username: data[i][1], nama: data[i][3], role: data[i][4] }
       };
     }
@@ -147,24 +211,46 @@ function login(p, body) {
 }
 
 // === PRODUCTS ===
+function mapProduct(row) {
+  return {
+    id: String(row[0]),
+    barcode: String(row[1]),
+    nama: row[2],
+    kategori: row[3],
+    modal: Number(row[4]),
+    ecer: Number(row[5]),
+    grosir: Number(row[6]),
+    minGrosir: Number(row[7]),
+    stock: Number(row[8]),
+    expired: formatDate(row[9])
+  };
+}
+
 function getProducts(body) {
   var sheet = SS.getSheetByName('PRODUCTS');
-  var data = sheet.getDataRange().getValues();
+  var lastRow = sheet.getLastRow();
+  var total = Math.max(0, lastRow - 1);
+
+  if (body && body.page) {
+    var page = Number(body.page) || 1;
+    var limit = Number(body.limit) || 20;
+    var offset = (page - 1) * limit;
+    if (offset >= total) return { data: [], total: total, page: page, limit: limit, hasMore: false };
+    var numRows = Math.min(limit, total - offset);
+    var data = sheet.getRange(2 + offset, 1, numRows, 10).getValues();
+    var result = [];
+    for (var i = 0; i < data.length; i++) {
+      if (!data[i][0]) continue;
+      result.push(mapProduct(data[i]));
+    }
+    return { data: result, total: total, page: page, limit: limit, hasMore: (offset + numRows) < total };
+  }
+
+  var allData = sheet.getDataRange().getValues();
   var result = [];
-  for (var i = 1; i < data.length; i++) {
-    if (!data[i][0]) continue;
-    result.push({
-      id: String(data[i][0]),
-      barcode: String(data[i][1]),
-      nama: data[i][2],
-      kategori: data[i][3],
-      modal: Number(data[i][4]),
-      ecer: Number(data[i][5]),
-      grosir: Number(data[i][6]),
-      minGrosir: Number(data[i][7]),
-      stock: Number(data[i][8]),
-      expired: formatDate(data[i][9])
-    });
+  for (var i = 1; i < allData.length; i++) {
+    if (!allData[i][0]) continue;
+    result.push(mapProduct(allData[i]));
   }
   return result;
 }
@@ -214,13 +300,34 @@ function deleteProduct(body) {
 // === STOCK ===
 function getStock(body) {
   var sheet = SS.getSheetByName('STOCK');
-  var data = sheet.getDataRange().getValues();
+  var lastRow = sheet.getLastRow();
+  var total = Math.max(0, lastRow - 1);
+
+  if (body && body.page) {
+    var page = Number(body.page) || 1;
+    var limit = Number(body.limit) || 20;
+    var offset = (page - 1) * limit;
+    if (offset >= total) return { data: [], total: total, page: page, limit: limit, hasMore: false };
+    var numRows = Math.min(limit, total - offset);
+    var data = sheet.getRange(2 + offset, 1, numRows, 6).getValues();
+    var result = [];
+    for (var i = 0; i < data.length; i++) {
+      if (!data[i][0]) continue;
+      result.push({
+        id: String(data[i][0]), tanggal: formatDate(data[i][1]),
+        barcode: String(data[i][2]), jenis: data[i][3], qty: Number(data[i][4]), keterangan: data[i][5]
+      });
+    }
+    return { data: result, total: total, page: page, limit: limit, hasMore: (offset + numRows) < total };
+  }
+
+  var allData = sheet.getDataRange().getValues();
   var result = [];
-  for (var i = 1; i < data.length; i++) {
-    if (!data[i][0]) continue;
+  for (var i = 1; i < allData.length; i++) {
+    if (!allData[i][0]) continue;
     result.push({
-      id: String(data[i][0]), tanggal: formatDate(data[i][1]),
-      barcode: String(data[i][2]), jenis: data[i][3], qty: Number(data[i][4]), keterangan: data[i][5]
+      id: String(allData[i][0]), tanggal: formatDate(allData[i][1]),
+      barcode: String(allData[i][2]), jenis: allData[i][3], qty: Number(allData[i][4]), keterangan: allData[i][5]
     });
   }
   return result;
@@ -263,20 +370,46 @@ function createPurchase(body) {
   var sheet = SS.getSheetByName('PURCHASE');
   var no = body.no || String(Date.now());
   var tanggal = body.tanggal ? new Date(body.tanggal) : new Date();
-  sheet.appendRow([no, body.supplier, tanggal, body.barcode, Number(body.qty), Number(body.modal)]);
+  var qty = Number(body.qty);
+  var modal = Number(body.modal);
+  var totalModal = qty * modal;
+  sheet.appendRow([no, body.supplier, tanggal, body.barcode, qty, modal, totalModal]);
   log('CREATE_PURCHASE', body.supplier + ' - ' + body.barcode);
   return { success: true, no: no };
 }
 
 function getPurchases(body) {
   var sheet = SS.getSheetByName('PURCHASE');
-  var data = sheet.getDataRange().getValues();
+  var lastRow = sheet.getLastRow();
+  var total = Math.max(0, lastRow - 1);
+
+  if (body && body.page) {
+    var page = Number(body.page) || 1;
+    var limit = Number(body.limit) || 20;
+    var offset = (page - 1) * limit;
+    if (offset >= total) return { data: [], total: total, page: page, limit: limit, hasMore: false };
+    var numRows = Math.min(limit, total - offset);
+    var data = sheet.getRange(2 + offset, 1, numRows, 7).getValues();
+    var result = [];
+    for (var i = 0; i < data.length; i++) {
+      if (!data[i][0]) continue;
+      result.push({
+        no: String(data[i][0]), supplier: data[i][1], tanggal: formatDate(data[i][2]),
+        barcode: String(data[i][3]), qty: Number(data[i][4]), modal: Number(data[i][5]),
+        totalModal: Number(data[i][6])
+      });
+    }
+    return { data: result, total: total, page: page, limit: limit, hasMore: (offset + numRows) < total };
+  }
+
+  var allData = sheet.getDataRange().getValues();
   var result = [];
-  for (var i = 1; i < data.length; i++) {
-    if (!data[i][0]) continue;
+  for (var i = 1; i < allData.length; i++) {
+    if (!allData[i][0]) continue;
     result.push({
-      no: String(data[i][0]), supplier: data[i][1], tanggal: formatDate(data[i][2]),
-      barcode: String(data[i][3]), qty: Number(data[i][4]), modal: Number(data[i][5])
+      no: String(allData[i][0]), supplier: allData[i][1], tanggal: formatDate(allData[i][2]),
+      barcode: String(allData[i][3]), qty: Number(allData[i][4]), modal: Number(allData[i][5]),
+      totalModal: Number(allData[i][6])
     });
   }
   return result;
@@ -290,6 +423,16 @@ function createSale(body) {
 
   var invoice = body.invoice || ('INV' + Date.now());
   var tanggal = new Date();
+
+  // Idempotensi: jika invoice sudah ada di sheet (retry offline sync,
+  // double-submit), jangan append lagi - kembalikan sukses.
+  var existing = salesSheet.getDataRange().getValues();
+  for (var e = 1; e < existing.length; e++) {
+    if (String(existing[e][0]) === String(invoice)) {
+      return { success: true, invoice: invoice, duplicate: true, profit: 0 };
+    }
+  }
+
   var kasir = body.kasir || 'admin';
   var subtotal = Number(body.subtotal) || 0;
   var diskon = Number(body.diskon) || 0;

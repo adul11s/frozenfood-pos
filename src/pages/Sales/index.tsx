@@ -36,7 +36,7 @@ export default function Sales() {
     mutationFn: (payload: Record<string, unknown>) => createSale(payload as never),
     onSuccess: (data, payload) => {
       if (data.success) {
-        const sale = { ...payload, invoice: data.invoice || payload.invoice };
+        const sale = { ...payload, invoice: data.invoice || payload.invoice, tanggal: new Date() };
         setLastSale(sale);
         setShowReceipt(true);
         clearCart();

@@ -1,4 +1,4 @@
-const DB_NAME = 'FrozenPOS';
+const DB_NAME = 'BiosFrozenFood';
 const DB_VERSION = 1;
 
 export const openDB = (): Promise<IDBDatabase> =>

@@ -7,6 +7,14 @@ export interface User {
   role: UserRole;
 }
 
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
+}
+
 export interface Product {
   id: string;
   barcode: string;
@@ -49,6 +57,7 @@ export interface Purchase {
   barcode: string;
   qty: number;
   modal: number;
+  totalModal?: number;
 }
 
 export interface Expense {

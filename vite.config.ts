@@ -9,8 +9,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'icons.svg'],
       manifest: {
-        name: 'FrozenFood POS',
-        short_name: 'FrozenPOS',
+        name: 'Bios Frozen Food',
+        short_name: 'Bios Frozen',
 theme_color: '#071a2b',
       background_color: '#071a2b',
         display: 'standalone',

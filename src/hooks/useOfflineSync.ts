@@ -1,8 +1,13 @@
 import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useStore } from '../store/useStore';
-import { getPendingSales, deletePendingSale } from '../utils/db';
-import { createSale } from '../services/sales';
+import { runOfflineSync } from '../utils/offlineSync';
+
+const INVALIDATE_KEYS = [
+  ['dashboard'],
+  ['products'],
+  ['report'],
+];
 
 export function useOfflineSync() {
   const { isOnline } = useStore();
@@ -15,19 +20,11 @@ export function useOfflineSync() {
 
     (async () => {
       try {
-        const pending = (await getPendingSales()) as { invoice: string }[];
-        for (const sale of pending) {
-          try {
-            await createSale(sale as never);
-            await deletePendingSale(sale.invoice);
-          } catch {
-            break;
-          }
-        }
-        if (pending.length > 0) {
-          qc.invalidateQueries({ queryKey: ['dashboard'] });
-          qc.invalidateQueries({ queryKey: ['products'] });
-          qc.invalidateQueries({ queryKey: ['report'] });
+        const pending = await runOfflineSync();
+        if (pending.synced + pending.failed > 0) {
+          INVALIDATE_KEYS.forEach((queryKey) =>
+            qc.invalidateQueries({ queryKey }),
+          );
         }
       } finally {
         syncing.current = false;

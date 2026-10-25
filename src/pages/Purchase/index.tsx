@@ -4,8 +4,9 @@ import { getProducts } from '../../services/product';
 import { getSuppliers } from '../../services/supplier';
 import { apiRequest } from '../../services/api';
 import { PageHeader, Spinner } from '../../components/ui/Card';
+import PurchaseReceipt from '../../components/receipt/PurchaseReceipt';
 import { useToast } from '../../hooks/useToast';
-import { todayISO, formatRupiah } from '../../utils';
+import { todayISO, formatRupiah, purchaseId } from '../../utils';
 import type { Product, Supplier } from '../../types';
 
 const inputCls = 'w-full panel-2 px-3 py-2 text-frost outline-none';
@@ -16,6 +17,10 @@ export default function Purchase() {
   const [qty, setQty] = useState(0);
   const [modal, setModal] = useState(0);
   const [tanggal, setTanggal] = useState(todayISO());
+  const [showReceipt, setShowReceipt] = useState(false);
+  const [lastPurchase, setLastPurchase] = useState<{
+    no: string; supplier: string; tanggal: string | Date; produk: string; qty: number; modal: number;
+  } | null>(null);
   const qc = useQueryClient();
   const { showToast } = useToast();
 
@@ -24,14 +29,29 @@ export default function Purchase() {
 
   const mut = useMutation({
     mutationFn: (payload: Record<string, unknown>) => apiRequest('/purchase', { body: payload }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['products'] }); qc.invalidateQueries({ queryKey: ['dashboard'] }); setProductBarcode(''); setQty(0); setModal(0); setTanggal(todayISO()); showToast('Pembelian tersimpan', 'success'); },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['products'] });
+      qc.invalidateQueries({ queryKey: ['dashboard'] });
+      const produk = products.find((p) => p.barcode === productBarcode);
+      setLastPurchase({
+        no: (data as Record<string, unknown>).no as string,
+        supplier,
+        tanggal: new Date(),
+        produk: produk?.nama || productBarcode,
+        qty,
+        modal,
+      });
+      setShowReceipt(true);
+      setProductBarcode(''); setQty(0); setModal(0); setTanggal(todayISO());
+      showToast('Pembelian tersimpan', 'success');
+    },
     onError: () => showToast('Gagal menyimpan pembelian', 'error'),
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!supplier || !productBarcode || qty <= 0) { showToast('Lengkapi data pembelian', 'error'); return; }
-    mut.mutate({ supplier, tanggal, barcode: productBarcode, qty, modal });
+    mut.mutate({ no: purchaseId(), supplier, tanggal, barcode: productBarcode, qty, modal });
   };
 
   const produk = products.find((p) => p.barcode === productBarcode);
@@ -39,6 +59,10 @@ export default function Purchase() {
   return (
     <div className="p-4 space-y-4">
       <PageHeader title="Pembelian" subtitle="Catat pembelian dari supplier" />
+
+      {showReceipt && lastPurchase && (
+        <PurchaseReceipt purchase={lastPurchase} onClose={() => setShowReceipt(false)} />
+      )}
 
       <form onSubmit={handleSubmit} className="panel p-4 space-y-3 text-sm">
         <div>
