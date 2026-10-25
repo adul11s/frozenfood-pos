@@ -3,6 +3,8 @@
 
 PWA (Progressive Web App) kasir untuk toko Bios Frozen Food. Dibangun dengan React + TypeScript + Vite, menggunakan Google Sheets sebagai database dan Google Apps Script sebagai API. Bekerja offline dan tersinkronisasi otomatis saat online.
 
+**Demo live: https://frozenfood-pos.vercel.app** — installable sebagai PWA (terverifikasi HTTP 200, 2026-10-25). Backend GAS tetap butuh deployment sendiri untuk data nyata.
+
 > **Status: DEMO.** Ini adalah aplikasi demo/portfolio, bukan produksi.
 > Model auth-nya demo: login membuat token sesi (disimpan di sheet `SESSIONS`, berlaku 24 jam) dan setiap request membawa shared secret (`VITE_GAS_SECRET`, dibandingkan dengan Script Properties `SHARED_SECRET` di GAS). Secret tetap berada di sisi klien dan password user tersimpan plain di sheet — cukup untuk menghentikan akses tanpa kredensial, tidak lebih. Jangan pakai data nyata.
 
